@@ -60,7 +60,7 @@ function locationsAreEqual(a, b) {
 
 function syncReduxAndRouter(history, store, selectRouterState = SELECT_STATE) {
   const getRouterState = () => selectRouterState(store.getState());
-  let lastChangeId = 0;
+  let lastRoute = {};
 
   if(!getRouterState()) {
     throw new Error(
@@ -74,10 +74,13 @@ function syncReduxAndRouter(history, store, selectRouterState = SELECT_STATE) {
       path: history.createPath(location),
       state: location.state
     };
+    console.log('HISTORY', route);
 
     // Avoid dispatching an action if the store is already up-to-date,
     // even if `history` wouldn't do anything if the location is the same
     if(locationsAreEqual(getRouterState(), route)) return;
+
+    lastRoute = route;
 
     const updatePath = location.action === 'REPLACE'
       ? replacePath
@@ -88,13 +91,14 @@ function syncReduxAndRouter(history, store, selectRouterState = SELECT_STATE) {
 
   const unsubscribeStore = store.subscribe(() => {
     const routing = getRouterState();
+    console.log('STORE', routing);
 
     // Only update the router once per `pushPath` call. This is
     // indicated by the `changeId` state; when that number changes, we
     // should update the history.
-    if(lastChangeId === routing.changeId) return;
+    if(locationsAreEqual(routing, lastRoute)) return;
 
-    lastChangeId = routing.changeId;
+    lastRoute = routing;
 
     const method = routing.replace ? 'replaceState' : 'pushState';
 
